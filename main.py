@@ -4,47 +4,92 @@
 # interpreta essas estruturas para decidir o que exibir ao usuario.
 
 import json
-from recomendador import recomendar
+import sys
+from pathlib import Path
+from recommender import recomendar
+from rule_validator import validar_regras
+
+CAMINHO_REGRAS = Path(__file__).resolve().parent / "regras_recomendacao.json"
+
+
+# Esta funcao carrega as regras de recomendacao a partir
+# de um arquivo JSON externo.
+# Alem de ler os dados, ela trata erros de arquivo e de formato,
+# aumentando a robustez da aplicacao.
+def carregar_regras():
+    try:
+        with open(CAMINHO_REGRAS, "r", encoding="utf-8") as f:
+            dados = json.load(f)
+            regras = dados["regras_recomendacao"]
+            validar_regras(regras)
+            return regras
+    except FileNotFoundError:
+        print("Arquivo de regras nao encontrado.")
+    except json.JSONDecodeError:
+        print("Erro ao ler o arquivo JSON.")
+    except KeyError:
+        print("Estrutura do arquivo JSON inválida.")
+    except ValueError as erro:
+        print(f"Erro de validacao das regras: {erro}")
+    except Exception as e:
+        print(f"Erro inesperado: {e}")
+    return None
+
+
+# Esta funcao exibe o menu de opcoes com base nas regras cadastradas.
+# Como o menu e construido a partir dos dados, a interface acompanha
+# automaticamente a estrutura definida no arquivo externo.
+def mostrar_menu(regras):
+    for i, regra in enumerate(regras, start=1):
+        genero = regra["condicao"]["genero"]
+        print(f"{i} - {genero.capitalize()}")
+
+
+# Esta funcao coleta e valida a escolha do usuario.
+# O objetivo e garantir que o perfil retornado esteja coerente
+# com as opcoes disponiveis no conjunto de regras.
+def obter_usuario(regras):
+    escolha = input("Escolha um genero: ")
+
+    if not escolha.isdigit():
+        print("Entrada inválida")
+        return None
+
+    indice = int(escolha) - 1
+
+    if indice < 0 or indice >= len(regras):
+        print("Opção inválida")
+        return None
+
+    usuario = {
+        "genero": regras[indice]["condicao"]["genero"]
+    }
+
+    if not usuario.get("genero"):
+        print("Genero invalido")
+        return None
+
+    return usuario
+
 
 # As regras de recomendacao foram movidas para um arquivo JSON externo.
 # Com isso, os dados ficam separados da logica do programa, reforcando
 # a abordagem orientada a dados e facilitando a reutilizacao da estrutura
 # em outros contextos de recomendacao.
-with open("regras_recomendacao.json", "r", encoding="utf-8") as f:
-    dados = json.load(f)
-    regras = dados["regras_recomendacao"]
+regras = carregar_regras()
 
-# O menu e gerado automaticamente a partir das regras cadastradas.
-# Isso evita repeticao de codigo e demonstra que a interface tambem
-# pode ser construida com base nos dados disponiveis.
-for i, regra in enumerate(regras, start=1):
-    genero = regra["condicao"]["genero"]
-    print(f"{i} - {genero.capitalize()}")
+# O restante da execucao so acontece se as regras forem carregadas corretamente.
+# Isso impede que o programa continue em um estado inconsistente.
+if regras is None:
+    print("Falha ao carregar regras.")
+    sys.exit()
 
-# O usuario informa sua preferencia selecionando um dos generos exibidos.
-escolha = input("Escolha um genero: ")
+mostrar_menu(regras)
 
-# A primeira validacao verifica se a entrada pode ser convertida em numero.
-# Esse tratamento reduz erros de execucao e melhora a confiabilidade do programa.
-if not escolha.isdigit():
-    print("Entrada invalida")
-else:
-    indice = int(escolha) - 1
+usuario = obter_usuario(regras)
 
-    # Aqui e verificado se o numero informado corresponde a uma opcao existente.
-    # Assim, o sistema impede acessos fora dos limites da lista de regras.
-    if indice < 0 or indice >= len(regras):
-        print("Opcao invalida")
-    else:
-        # O perfil do usuario tambem e representado por dados.
-        # Nesse caso, apenas o genero escolhido e necessario para a busca.
-        usuario = {
-            "genero": regras[indice]["condicao"]["genero"]
-        }
-
-        # A resposta final surge da interpretacao das regras cadastradas.
-        # Isso evidencia o papel dos dados na conducao do comportamento do sistema.
-        recomendacoes = recomendar(usuario, regras)
-        print("\nRecomendacoes:")
-        for filme in recomendacoes:
-            print("-", filme)
+if usuario is not None:
+    recomendacoes = recomendar(usuario, regras)
+    print("\nRecomendações:")
+    for filme in recomendacoes:
+        print("-", filme)
