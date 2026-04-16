@@ -1,0 +1,12 @@
+{
+  "regras_recomendacao":
+  [
+    {"condicao": {"genero": "acao"}, "recomendacoes": ["Mad Max", "John Wick", "Gladiador"]},
+    {"condicao": {"genero": "romance"}, "recomendacoes": ["Diario de uma Paixao", "Titanic", "La La Land"]},
+    {"condicao": {"genero": "comedia"}, "recomendacoes": ["Se Eu Fosse Voce", "As Branquelas", "Se Beber, Nao Case!"]},
+    {"condicao": {"genero": "terror"}, "recomendacoes": ["O Exorcista", "Invocacao do Mal", "It: A Coisa"]},
+    {"condicao": {"genero": "suspense"}, "recomendacoes": ["Parasite", "The Girl with the Dragon Tattoo", "Gone Girl"]},
+    {"condicao": {"genero": "drama"}, "recomendacoes": ["O Poderoso Chefao", "O Iluminado", "O Homem do Meio-Dia"]},
+    {"condicao": {"genero": "ficcao"}, "recomendacoes": ["Interestelar", "Matrix", "Blade Runner"]}
+  ]
+}
