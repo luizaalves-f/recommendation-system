@@ -1,37 +1,11 @@
-from pathlib import Path
 import json
 
 from flask import Flask, request, jsonify
 
 from recommender import recomendar
-from rule_validator import validar_regras
+from rule_loader import carregar_regras
 
 app = Flask(__name__)
-CAMINHO_REGRAS = Path(__file__).resolve().parent / "regras_recomendacao.json"
-
-
-# Esta funcao carrega as regras de recomendacao a partir
-# de um arquivo JSON externo.
-# Alem de ler os dados, ela trata erros esperados de arquivo e de formato,
-# aumentando a robustez da aplicacao web.
-def carregar_regras():
-    try:
-        with open(CAMINHO_REGRAS, "r", encoding="utf-8") as f:
-            dados = json.load(f)
-            regras = dados["regras_recomendacao"]
-            validar_regras(regras)
-            return regras
-    except FileNotFoundError:
-        app.logger.error("Arquivo de regras nao encontrado.")
-    except json.JSONDecodeError:
-        app.logger.error("Erro ao ler o arquivo JSON.")
-    except KeyError:
-        app.logger.error("Estrutura do arquivo JSON invalida.")
-    except ValueError as erro:
-        app.logger.error(f"Erro de validacao das regras: {erro}")
-
-    return None
-
 
 # Esta rota inicial permite verificar rapidamente se a aplicacao Flask
 # esta em execucao e orienta como utilizar o endpoint principal.
@@ -44,15 +18,25 @@ def pagina_inicial():
         "exemplo_body": {"genero": "acao"},
     })
 
-
+# Endpoint principal da API: /recomendar
 @app.route("/recomendar", methods=["POST"])
 def recomendar_filmes():
-    # As regras sao carregadas no momento da requisicao.
-    # Isso evita que a API fique permanentemente em erro caso o arquivo
-    # seja corrigido depois da inicializacao do servidor.
-    regras = carregar_regras()
-
-    if regras is None:
+    try:
+        # As regras sao carregadas no momento da requisicao.
+        # Isso evita que a API fique permanentemente em erro caso o arquivo
+        # seja corrigido depois da inicializacao do servidor.
+        regras = carregar_regras()
+    except FileNotFoundError:
+        app.logger.error("Arquivo de regras nao encontrado.")
+        return jsonify({"erro": "Falha ao carregar regras."}), 500
+    except json.JSONDecodeError:
+        app.logger.error("Erro ao ler o arquivo JSON.")
+        return jsonify({"erro": "Falha ao carregar regras."}), 500
+    except KeyError:
+        app.logger.error("Estrutura do arquivo JSON invalida.")
+        return jsonify({"erro": "Falha ao carregar regras."}), 500
+    except ValueError as erro:
+        app.logger.error(f"Erro de validacao das regras: {erro}")
         return jsonify({"erro": "Falha ao carregar regras."}), 500
 
     # O corpo da requisicao deve estar em formato JSON.

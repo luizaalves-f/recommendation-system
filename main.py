@@ -5,35 +5,8 @@
 
 import json
 import sys
-from pathlib import Path
 from recommender import recomendar
-from rule_validator import validar_regras
-
-CAMINHO_REGRAS = Path(__file__).resolve().parent / "regras_recomendacao.json"
-
-
-# Esta funcao carrega as regras de recomendacao a partir
-# de um arquivo JSON externo.
-# Alem de ler os dados, ela trata erros de arquivo e de formato,
-# aumentando a robustez da aplicacao.
-def carregar_regras():
-    try:
-        with open(CAMINHO_REGRAS, "r", encoding="utf-8") as f:
-            dados = json.load(f)
-            regras = dados["regras_recomendacao"]
-            validar_regras(regras)
-            return regras
-    except FileNotFoundError:
-        print("Arquivo de regras nao encontrado.")
-    except json.JSONDecodeError:
-        print("Erro ao ler o arquivo JSON.")
-    except KeyError:
-        print("Estrutura do arquivo JSON inválida.")
-    except ValueError as erro:
-        print(f"Erro de validacao das regras: {erro}")
-    except Exception as e:
-        print(f"Erro inesperado: {e}")
-    return None
+from rule_loader import carregar_regras
 
 
 # Esta funcao exibe o menu de opcoes com base nas regras cadastradas.
@@ -76,12 +49,19 @@ def obter_usuario(regras):
 # Com isso, os dados ficam separados da logica do programa, reforcando
 # a abordagem orientada a dados e facilitando a reutilizacao da estrutura
 # em outros contextos de recomendacao.
-regras = carregar_regras()
-
-# O restante da execucao so acontece se as regras forem carregadas corretamente.
-# Isso impede que o programa continue em um estado inconsistente.
-if regras is None:
-    print("Falha ao carregar regras.")
+try:
+    regras = carregar_regras()
+except FileNotFoundError:
+    print("Arquivo de regras nao encontrado.")
+    sys.exit()
+except json.JSONDecodeError:
+    print("Erro ao ler o arquivo JSON.")
+    sys.exit()
+except KeyError:
+    print("Estrutura do arquivo JSON invalida.")
+    sys.exit()
+except ValueError as erro:
+    print(f"Erro de validacao das regras: {erro}")
     sys.exit()
 
 mostrar_menu(regras)
