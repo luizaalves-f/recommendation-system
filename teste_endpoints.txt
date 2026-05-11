@@ -1,4 +1,62 @@
-# Testando o endpoint /recomendar
+# Testes da API Flask usando PowerShell como administrador
 
-$body = @{ genero = "acao" } | ConvertTo-Json
-Invoke-RestMethod -Uri "http://127.0.0.1:5000/recomendar" -Method Post -Body $body -ContentType "application/json"
+# 1) Abra o PowerShell como administrador.
+# 2) Entre na pasta do projeto:
+cd "C:\Users\luiiz\OneDrive\Documentos\GitHub\recommendation-system"
+
+# 3) Se estiver usando ambiente virtual, ative-o:
+.\.venv\Scripts\Activate.ps1
+
+# Se o PowerShell bloquear a ativacao do ambiente virtual, rode:
+# Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+# .\.venv\Scripts\Activate.ps1
+
+# 4) Garanta que o banco SQLite esta populado com os CSVs atuais:
+python populate_db.py
+
+# 5) Suba a API Flask.
+# Mantenha esta janela aberta enquanto testa os endpoints em outra janela.
+python app.py
+
+
+# Em outra janela do PowerShell como administrador:
+cd "C:\Users\luiiz\OneDrive\Documentos\GitHub\recommendation-system"
+
+# Testar endpoint inicial:
+Invoke-RestMethod -Uri "http://127.0.0.1:5000/" -Method Get
+
+# Listar generos vindos do banco SQLite:
+Invoke-RestMethod -Uri "http://127.0.0.1:5000/generos" -Method Get
+
+# Testar recomendacao por genero existente no banco.
+# Este endpoint agora consulta o recsys.db, nao o arquivo regras_recomendacao.json.
+$body = @{ genero = "Action" } | ConvertTo-Json
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:5000/recomendar" `
+  -Method Post `
+  -Body $body `
+  -ContentType "application/json"
+
+# Testar outro genero usando o nome como esta no dataset:
+$body = @{ genero = "Science Fiction" } | ConvertTo-Json
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:5000/recomendar" `
+  -Method Post `
+  -Body $body `
+  -ContentType "application/json"
+
+# Testar erro de validacao quando o corpo nao tem genero:
+$body = @{} | ConvertTo-Json
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:5000/recomendar" `
+  -Method Post `
+  -Body $body `
+  -ContentType "application/json"
+
+# Testar genero inexistente:
+$body = @{ genero = "genero inexistente" } | ConvertTo-Json
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:5000/recomendar" `
+  -Method Post `
+  -Body $body `
+  -ContentType "application/json"
