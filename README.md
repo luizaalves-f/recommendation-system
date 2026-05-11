@@ -1,44 +1,130 @@
 # Recommendation System
 
-Sistema de recomendação de filmes desenvolvido com Flask, SQLite e paradigma **Data-Driven** (orientado a dados).  
-O comportamento do sistema é guiado pelos dados armazenados no banco, sem regras de negócio fixas no código.
+Sistema de recomendacao de filmes desenvolvido com Flask e SQLite. O banco e populado a partir dos arquivos `tmdb_5000_movies.csv` e `tmdb_5000_credits.csv`, seguindo a estrutura definida em `schema.sql`.
 
-## 📁 Estrutura do Projeto
+## Estrutura
 
-- `app.py` – API Flask com endpoints de recomendação
-- `schema.sql` – Definição do banco de dados (tabelas, índices, views)
-- `recsys.db` – Banco SQLite (gerado após execução do schema)
-- `scripts/` – (opcional) scripts para popular o banco a partir de datasets
+- `app.py`: API Flask.
+- `schema.sql`: estrutura do banco SQLite.
+- `populate_db.py`: recria e popula `recsys.db` com os dados dos CSVs.
+- `recsys.db`: banco SQLite gerado localmente.
+- `tmdb_5000_movies.csv`: dados principais dos filmes.
+- `tmdb_5000_credits.csv`: elenco/equipe tecnica, usado aqui para extrair diretores.
+- `main.py`, `recommender.py`, `rule_loader.py`, `rule_validator.py`: versao anterior baseada em regras JSON/terminal.
 
-## 🧰 Pré-requisitos
+## Pre-requisitos
 
 - Python 3.8+
-- SQLite3 (geralmente já incluso no Python)
 - Git
+- SQLite via modulo `sqlite3` do Python
 
-## 🚀 Configuração e Execução
+Instale as dependencias usadas ate agora:
 
 ```bash
-# 1) Clonar o repositório
-git clone https://github.com/luizaalves-f/recommendation-system
-cd recommendation-system
-
-# 2) Criar e ativar ambiente virtual
-python -m venv .venv
-# Windows:
-.venv\Scripts\activate.bat
-# Linux/Mac:
-# source .venv/bin/activate
-
-# 3) Atualizar pip e instalar dependências
 python -m pip install --upgrade pip
-python -m pip install flask pandas numpy scikit-learn
+python -m pip install flask pandas
+```
 
-# 4) Criar o banco de dados (executar o schema)
-sqlite3 recsys.db < schema.sql
+## Popular o banco
 
-# 5) (Opcional) Popular o banco com dados iniciais
-# python scripts/populate_db.py
+Com os arquivos `tmdb_5000_movies.csv` e `tmdb_5000_credits.csv` na raiz do projeto, execute:
 
-# 6) Executar a aplicação
+```bash
+python populate_db.py
+```
+
+O script:
+
+- recria as tabelas conforme `schema.sql`;
+- popula `languages`, `movies`, `genres`, `directors`;
+- cria os relacionamentos `movie_genres` e `movie_directors`;
+- cria alguns usuarios e avaliacoes ficticias para teste.
+
+Ao final, ele imprime as contagens inseridas em cada tabela.
+
+## Executar a API Flask
+
+Na raiz do projeto:
+
+```bash
 python app.py
+```
+
+Por padrao, a API fica disponivel em:
+
+```text
+http://127.0.0.1:5000
+```
+
+## Endpoints
+
+### `GET /`
+
+Verifica se a API esta no ar e mostra os endpoints disponiveis.
+
+PowerShell:
+
+```powershell
+Invoke-RestMethod -Uri "http://127.0.0.1:5000/" -Method Get
+```
+
+### `GET /generos`
+
+Lista os generos existentes no banco.
+
+PowerShell:
+
+```powershell
+Invoke-RestMethod -Uri "http://127.0.0.1:5000/generos" -Method Get
+```
+
+### `POST /recomendar`
+
+Retorna recomendacoes de filmes por genero consultando o banco SQLite.
+
+PowerShell:
+
+```powershell
+$body = @{ genero = "Action" } | ConvertTo-Json
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:5000/recomendar" `
+  -Method Post `
+  -Body $body `
+  -ContentType "application/json"
+```
+
+Exemplo de corpo JSON:
+
+```json
+{
+  "genero": "Action"
+}
+```
+
+O endpoint aceita os nomes dos generos como estao armazenados no banco, por exemplo `Action`, `Comedy`, `Drama` e `Science Fiction`. Consulte `GET /generos` para ver os valores disponiveis.
+
+## Sobre o endpoint antigo
+
+Antes, o endpoint `/recomendar` usava `regras_recomendacao.json`. Depois da migracao para SQLite, esse comportamento foi atualizado em `app.py`: agora o endpoint consulta as tabelas `movies`, `genres`, `movie_genres` e a view `movie_popularity`.
+
+Ou seja: o contrato principal continua parecido, mas agora o valor de `genero` deve vir dos dados retornados por `GET /generos`, e a fonte das recomendacoes e o banco `recsys.db`.
+
+## Validacoes uteis
+
+Checar se os CSVs sao compativeis:
+
+```bash
+python check_dataset_compatibility.py
+```
+
+Ver colunas do arquivo de filmes:
+
+```bash
+python check.py
+```
+
+Compilar os scripts Python para verificar erro de sintaxe:
+
+```bash
+python -m py_compile app.py populate_db.py
+```
